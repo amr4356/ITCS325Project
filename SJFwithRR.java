@@ -24,9 +24,9 @@ public class SJFwithRR {
         boolean exit = false;
 
         // User input: quantum number and process details
-        System.out.println("Enter quantum number:");
+        System.out.println("Enter the quantum number:");
         q = k.nextInt();
-        System.out.println("Enter process ID, arrival time and burst time; enter 0 0 0 to stop.");
+        System.out.println("Enter process ID, arrival time and burst time (enter 0 0 0 to stop):");
         while (!exit) {
             enteredPID = k.nextInt();
             enteredAT = k.nextInt();
@@ -84,9 +84,41 @@ public class SJFwithRR {
         int index = 0; // Index of current running process in arrays
 
         // Initialize time line and ready queue with first process
-        timeLine.add(arrivalTime.get(0));
-        readyQueue.add(processID.get(0));
-        start[0] = arrivalTime.get(0);
+        int minBT = 0;
+        int minBtIndex = 0;
+        if (arrivalTime.get(0) < arrivalTime.get(1)) {
+            timeLine.add(arrivalTime.get(0));
+            readyQueue.add(processID.get(0));
+            start[0] = arrivalTime.get(0);
+        } else {
+            minBT = burstTime.get(minBtIndex);
+            for (int i = 0; i < arrivalTime.size(); i++) {
+                if (i == (arrivalTime.size() - 1)) {
+                    if (burstTime.get(i) < minBT) {
+                        minBT = burstTime.get(i);
+                        minBtIndex = i;
+                    }
+                    break;
+                }
+                if (arrivalTime.get(i) < arrivalTime.get(i + 1)) {
+                    if (burstTime.get(i) < minBT) {
+                        minBT = burstTime.get(i);
+                        minBtIndex = i;
+                    }
+                    break;
+                }
+
+                if (burstTime.get(i) < minBT) {
+                    minBT = burstTime.get(i);
+                    minBtIndex = i;
+                }
+            }
+        }
+        if (minBT != 0) {
+            timeLine.add(arrivalTime.get(minBtIndex));
+            readyQueue.add(processID.get(minBtIndex));
+            start[minBtIndex] = arrivalTime.get(minBtIndex);
+        }
 
         // Execute processes until ready queue is empty
         while (!readyQueue.isEmpty()) {
@@ -113,32 +145,38 @@ public class SJFwithRR {
                     finish[index] = time;
                 }
 
-                // Add newly arrived processes to ready queue
-                if (burstTime.get(index) != 0) {
-                    for (int i = index + 1; i < arrivalTime.size(); i++) {
-                        if (arrivalTime.get(i) <= time)
-                            if (!readyQueue.contains(processID.get(i))) {
-                                readyQueue.add(processID.get(i));
-                            }
-
+                ArrayList<Integer> currentreadyProcessBursts = new ArrayList<Integer>();
+                ArrayList<Integer> currentreadyProcessPID = new ArrayList<Integer>();
+                for (int i = 0; i < arrivalTime.size(); i++) {
+                    if (arrivalTime.get(i) <= time) {
+                        if (burstTime.get(i) != 0) {
+                            currentreadyProcessBursts.add(burstTime.get(i));
+                            currentreadyProcessPID.add(processID.get(i));
+                        }
                     }
-                    readyQueue.add(currentRunningProcess);
-                } else {
-                    // Add processes to ready queue if they have arrived and current process is
-
-                    for (int i = index + 1; i < arrivalTime.size(); i++) {
-                        if (arrivalTime.get(i) <= time)
-                            if (!readyQueue.contains(processID.get(i))) {
-                                readyQueue.add(processID.get(i));
-                            }
-
-                    }
-
-                    // If last process is reached and ready queue is empty, add first process
-                    if (processID.indexOf(index) == processID.size() - 1 && readyQueue.isEmpty())
-                        readyQueue.add(processID.get(0));
-
                 }
+                if (currentreadyProcessPID.size() != 0) {
+                    for (int i = 0; i < currentreadyProcessPID.size() - 1; i++) {
+                        for (int j = 0; j < currentreadyProcessPID.size() - 1 - i; j++) {
+                            if (currentreadyProcessBursts.get(j) > currentreadyProcessBursts.get(j + 1)) {
+                                int temp1 = currentreadyProcessPID.get(j);
+                                int temp2 = currentreadyProcessBursts.get(j);
+                                // sort currentreadyProcessPid
+                                currentreadyProcessPID.set(j, currentreadyProcessPID.get(j + 1));
+                                currentreadyProcessPID.set(j + 1, temp1);
+
+                                // sort currentreadyProcessBursts
+                                currentreadyProcessBursts.set(j, currentreadyProcessBursts.get(j + 1));
+                                currentreadyProcessBursts.set(j + 1, temp2);
+                            }
+                        }
+                    }
+                    readyQueue.clear();
+                    for (int i = 0; i < currentreadyProcessPID.size(); i++) {
+                        readyQueue.add(currentreadyProcessPID.get(i));
+                    }
+                }
+
             } else if (arrivalTime.get(index) > time) {
                 // If no process has arrived, move to the next time unit
                 time++;
